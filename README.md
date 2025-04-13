@@ -75,26 +75,22 @@ php artisan queue:work
 
 ---
 
-### 📡 7. Real-time Broadcasting (via Laravel Echo Server)
+### 📡 7. Real-time Broadcasting (via Pusher)
 
-```bash
-npm install -g laravel-echo-server
-laravel-echo-server init
-laravel-echo-server start
-```
+> This project uses [Pusher](https://pusher.com/) for broadcasting real-time job completion events.
 
-Ensure `.env` has:
+Ensure the following `.env` configuration is set:
 
 ```env
 BROADCAST_DRIVER=pusher
+
 PUSHER_APP_ID=local
 PUSHER_APP_KEY=local
 PUSHER_APP_SECRET=local
-PUSHER_HOST=127.0.0.1
-PUSHER_PORT=6001
-PUSHER_SCHEME=http
 PUSHER_APP_CLUSTER=mt1
 ```
+
+> ⚠️ You can use Pusher with a free account. Sign up at [pusher.com](https://pusher.com) and update these values.
 
 ---
 
