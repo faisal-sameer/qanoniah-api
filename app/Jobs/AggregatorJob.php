@@ -10,7 +10,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use App\Events\JobCompleted;
+use App\Models\JobMetric;
 use App\Models\JobResult;
+use App\Models\TemperatureJob;
 
 class AggregatorJob implements ShouldQueue
 {
@@ -24,9 +26,12 @@ class AggregatorJob implements ShouldQueue
         $this->jobId = $jobId;
         $this->totalChunks = $totalChunks;
     }
+    // app/Jobs/AggregatorJob.php
 
     public function handle(): void
     {
+        $start = microtime(true);
+
         Log::info("▶️ Aggregator started for job: {$this->jobId}");
 
         $aggregated = [];
@@ -60,7 +65,9 @@ class AggregatorJob implements ShouldQueue
 
         Redis::set("job:{$this->jobId}:final", json_encode($aggregated));
         Log::info("✅ Aggregation complete for job {$this->jobId}");
-        broadcast(new JobCompleted($this->jobId, $aggregated));
+        Log::info("JobResult started !!!!!!!");
+
+
         foreach ($aggregated as $city => $data) {
             JobResult::create([
                 'job_id' => $this->jobId,
@@ -72,5 +79,28 @@ class AggregatorJob implements ShouldQueue
                 'count' => $data['count'],
             ]);
         }
+
+        Log::info("duration calc start started !!!!!!!");
+        $duration = round(microtime(true) - $start, 3);
+        $memory = round(memory_get_peak_usage(true) / 1024);
+
+        $temperatureJobId = TemperatureJob::where('job_id', $this->jobId)->first();
+
+        if ($temperatureJobId) {
+            Log::info("temperatureJobId found !!!!!");
+            JobMetric::updateOrCreate(
+                ['job_id' => $temperatureJobId->id],
+                [
+                    'execution_time' => $duration,
+                    'memory_usage' => $memory,
+                    'processed_rows' => array_sum(array_column($aggregated, 'count')),
+                ]
+            );
+        } else {
+            Log::info("❌ Could not find temperature job for job_id {$this->jobId}");
+        }
+        Log::info("duration calc start end !!!!!!!");
+
+        // broadcast(new JobCompleted($this->jobId, $aggregated));
     }
 }
